@@ -14,7 +14,15 @@
     RootModule           = 'Karabiner.psm1'
 
     AliasesToExport      = @()
-    FunctionsToExport    = @()
+    FunctionsToExport    = @(
+        'Get-KarabinerConfig',
+        'Get-KarabinerProfile',
+        'Get-KarabinerRule',
+        'Set-KarabinerConfig',
+        'Set-KarabinerProfile',
+        'Set-KarabinerRule',
+        'Switch-KarabinerProfile'
+    )
 
     FormatsToProcess     = @()
 
