@@ -27,3 +27,14 @@ $Dependencies | % {
         Install-Module @Params @_
     }
 }
+
+$HomebrewPackages = @(
+    'karabiner-elements'
+)
+
+$HomebrewPackages | % {
+    if (-not (Test-Path "/Applications/$_.app"))
+    {
+        brew install --cask $_
+    }
+}
