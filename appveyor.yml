@@ -6,8 +6,7 @@ cache:
 - /Users/appveyor/.local/share/powershell/Modules/Pester
 - /Users/appveyor/.local/share/powershell/Modules/PowerShellGet
 - /Users/appveyor/.local/share/powershell/Modules/InvokeBuild
-- /Applications/Karabiner-Elements.app
-- /Library/Application Support/org.pqrs/Karabiner-Elements
+- /Users/appveyor/Library/Caches/Homebrew/downloads
 
 skip_branch_with_pr: true
 
