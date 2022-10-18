@@ -3,7 +3,9 @@
     ModuleVersion        = '0.0.1'
     HelpInfoURI          = 'https://pages.github.com/fsackur/Karabiner'
 
+    # Only for MacOS
     CompatiblePSEditions = @('Core')
+    PowerShellVersion    = '7.1'
 
     GUID                 = '36ccc2ae-a266-43b7-8fed-da48ff570483'
 
