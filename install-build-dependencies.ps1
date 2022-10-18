@@ -32,8 +32,10 @@ $HomebrewPackages = @(
     'karabiner-elements'
 )
 
+$Casks = brew list --cask
+
 $HomebrewPackages | % {
-    if (-not (Test-Path "/Applications/$_.app"))
+    if ($_ -notin $Casks)
     {
         $env:HOMEBREW_NO_AUTO_UPDATE = 1
         brew install --cask $_
