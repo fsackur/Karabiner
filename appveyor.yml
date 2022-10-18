@@ -1,11 +1,11 @@
 version: "{build}"
 
-image: Visual Studio 2022
+image: macos-monterey
 
 cache:
-- C:\Users\appveyor\Documents\PowerShell\Modules\Pester
-- C:\Users\appveyor\Documents\PowerShell\Modules\PowerShellGet
-- C:\Users\appveyor\Documents\PowerShell\Modules\InvokeBuild
+- /Users/appveyor/.local/share/powershell/Modules/Pester
+- /Users/appveyor/.local/share/powershell/Modules/PowerShellGet
+- /Users/appveyor/.local/share/powershell/Modules/InvokeBuild
 
 skip_branch_with_pr: true
 
