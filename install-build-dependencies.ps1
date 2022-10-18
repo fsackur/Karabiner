@@ -27,3 +27,17 @@ $Dependencies | % {
         Install-Module @Params @_
     }
 }
+
+$HomebrewPackages = @(
+    'karabiner-elements'
+)
+
+$Casks = brew list --cask
+
+$HomebrewPackages | % {
+    if ($_ -notin $Casks)
+    {
+        $env:HOMEBREW_NO_AUTO_UPDATE = 1
+        brew install --cask $_
+    }
+}
