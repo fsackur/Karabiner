@@ -3,6 +3,8 @@
     ModuleVersion        = '0.0.1'
     HelpInfoURI          = 'https://pages.github.com/fsackur/Karabiner'
 
+    CompatiblePSEditions = @('Core')
+
     GUID                 = '36ccc2ae-a266-43b7-8fed-da48ff570483'
 
     Author               = 'Freddie Sackur'
