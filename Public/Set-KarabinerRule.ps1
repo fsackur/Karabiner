@@ -3,16 +3,17 @@ function Set-KarabinerRule
     [Diagnostics.CodeAnalysis.SuppressMessage('PSAvoidAssignmentToAutomaticVariable', '')]
     param
     (
-        [Parameter(Mandatory, Position = 0)]
+        [ArgumentCompleter({(Invoke-Karabiner list-profile-names) -replace '.*\s.*', "'`$0'"})]
         $Profile,
 
-        [Parameter(Mandatory, Position = 1, ValueFromPipeline)]
+        [Parameter(Mandatory, Position = 0, ValueFromPipeline)]
         $Rule
     )
 
     begin
     {
-        $_Profile = Get-KarabinerProfile $Profile
+        $ProfileParams = if ($Profile) {@{Name = $Profile}} else {@{}}
+        $_Profile = Get-KarabinerProfile @ProfileParams
         $Rules = $_Profile.complex_modifications.rules
     }
 
