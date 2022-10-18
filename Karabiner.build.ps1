@@ -1,4 +1,4 @@
-#requires -Modules @{ModuleName = 'InvokeBuild'; ModuleVersion = '5.9.12'}
+#requires -Modules @{ModuleName = 'InvokeBuild'; ModuleVersion = '5.9.12'}, @{ModuleName = 'PowerShellGet'; ModuleVersion = '3.0.16'}
 
 param
 (
