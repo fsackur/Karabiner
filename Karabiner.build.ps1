@@ -72,12 +72,25 @@ task Test Import, {
     Invoke-Pester
 }
 
-task Publish Build, {
+task PrepPublishableContent Build, {
     $UnversionedBase = "Build/Karabiner"
     $VersionedBase = Get-Module $UnversionedBase -ListAvailable | ForEach-Object ModuleBase
-    Get-ChildItem $VersionedBase | Copy-Item -Destination $UnversionedBase
+    Get-ChildItem $VersionedBase | Move-Item -Destination $UnversionedBase
     remove $VersionedBase
-    Publish-PSResource -Verbose -Path $UnversionedBase -DestinationPath Build -Repository PSGallery -ApiKey $PSGalleryApiKey
+}
+
+Task BuildNupkg PrepPublishableContent, {
+    $UnversionedBase = "Build/Karabiner"
+    if (-not (Get-PSResourceRepository PipelineArtifacts -ErrorAction Ignore))
+    {
+        Register-PSResourceRepository PipelineArtifacts -Uri ./Build -Trusted
+    }
+    Publish-PSResource -Verbose -Path $UnversionedBase -Repository PipelineArtifacts
+}
+
+task Publish PrepPublishableContent, {
+    $UnversionedBase = "Build/Karabiner"
+    Publish-PSResource -Verbose -Path $UnversionedBase -Repository PSGallery -ApiKey $PSGalleryApiKey
 }
 
 task . PSSA, Test
