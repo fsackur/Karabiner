@@ -11,7 +11,6 @@ skip_branch_with_pr: true
 
 skip_commits:
   author: appveyor
-  message: /^Merge pull request/
 
 environment:
   GITHUB_TOKEN:
