@@ -31,6 +31,15 @@ build_script:
 
     ./install-build-dependencies.ps1
 
+    if (
+        $env:APPVEYOR_REPO_BRANCH -eq 'main' -and
+        $env:APPVEYOR_REPO_COMMIT_MESSAGE -match '^Merge pull request' -and
+        -not $env:APPVEYOR_REPO_TAG
+    )
+    {
+        $env:APPVEYOR_REPO_TAG_NAME = 'build'
+    }
+
     if ($env:APPVEYOR_REPO_TAG_NAME)
     {
         Invoke-Build UpdateVersion -Tag $env:APPVEYOR_REPO_TAG_NAME
