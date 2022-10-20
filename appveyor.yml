@@ -59,7 +59,7 @@ artifacts:
 - path: ./Build/**Karabiner*.nupkg
   name: NuGet package
 - path: ./Build/Karabiner
-  name: Zip
+  name: Karabiner $(APPVEYOR_REPO_TAG_NAME)
 
 # If we updated the version in the build step, then we should commit and push
 before_deploy:
@@ -73,7 +73,7 @@ deploy:
   description: Karabiner $(APPVEYOR_REPO_TAG_NAME)
   auth_token:
     secure: VBvtOx1GcfCw0CpszU3o51q+rXovGMjX25Ld2RUF3c2rF1kaGF+cF8OiB6U2fPbY
-  artifact: Zip
+  artifact: Karabiner $(APPVEYOR_REPO_TAG_NAME)
   on:
     branch: main
     APPVEYOR_REPO_TAG: true
