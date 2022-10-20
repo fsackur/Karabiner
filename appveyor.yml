@@ -18,6 +18,13 @@ environment:
   PSGALLERY_API_KEY:
     secure: UmYQsexe/hTwjL9R4PL6/2yzzwLPMERuN4FD2vWTtlWON8QBOeCifkmDCfzMjifo
 
+init:
+- pwsh: |
+    git config --global credential.helper store
+    Set-Content (Join-Path $HOME .git-credentials) -Value "https://$($env:GITHUB_TOKEN):x-oauth-basic@github.com`n" -NoNewline
+    git config --global user.email appveyor@dustyfox.uk
+    git config --global user.name appveyor
+
 build_script:
 - pwsh: |
     $ErrorActionPreference = 'Stop'
