@@ -30,7 +30,10 @@ build_script:
 
         $ManifestPath = 'Karabiner.psd1'
         $Version = (Test-ModuleManifest $ManifestPath -ErrorAction Stop).Version
-        $BuildId = "v$Version"
+        $Tag = "v$Version"
+        $env:APPVEYOR_REPO_TAG_NAME = $Tag
+
+        $BuildId = $Tag
     }
     elseif ($env:APPVEYOR_PULL_REQUEST_NUMBER)
     {
@@ -46,6 +49,11 @@ build_script:
     Invoke-Build Test
 
     Invoke-Build BuildNupkg
+
+    if ($Version)
+    {
+        Invoke-Build Tag -Tag $Tag
+    }
 
 artifacts:
 - path: ./Build/**Karabiner*.nupkg

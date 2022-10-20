@@ -94,6 +94,50 @@ task Test Import, {
     Invoke-Pester
 }
 
+task Tag {
+    $ManifestPath = "Karabiner.psd1"
+    if (-not $Tag)
+    {
+        $Version = (Test-ModuleManifest $ManifestPath -ErrorAction Stop).Version
+        $Tag = "v$Version"
+    }
+
+    if ($Tag -in (git tag))
+    {
+        Write-Build Blue "Tag $Tag already present"
+        return
+    }
+
+    $Modified = (git status -s) -replace '^...'
+    if ($ManifestPath -in $Modified)
+    {
+        $Result = git add $ManifestPath *>&1 | Out-String | % Trim
+        if (-not $?)
+        {
+            throw $Result
+        }
+
+        $Result = git commit -m $Tag *>&1 | Out-String | % Trim
+        if (-not $?)
+        {
+            throw $Result
+        }
+    }
+
+    $Result = git tag $Tag *>&1 | Out-String | % Trim
+    if (-not $?)
+    {
+        throw $Result
+    }
+    Write-Build Green "Tagged $Tag"
+
+    $Result = git push --tags *>&1 | Out-String | % Trim
+    if (-not $?)
+    {
+        throw $Result
+    }
+}
+
 task PrepPublishableContent Build, {
     $UnversionedBase = "Build/Karabiner"
     $VersionedBase = Get-Module $UnversionedBase -ListAvailable | ForEach-Object ModuleBase
