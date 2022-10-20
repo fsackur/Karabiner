@@ -18,23 +18,30 @@ environment:
   PSGALLERY_API_KEY:
     secure: UmYQsexe/hTwjL9R4PL6/2yzzwLPMERuN4FD2vWTtlWON8QBOeCifkmDCfzMjifo
 
-init:
+build_script:
 - pwsh: |
-    if ($env:APPVEYOR_REPO_TAG -eq 'true')
+    $ErrorActionPreference = 'Stop'
+
+    ./install-build-dependencies.ps1
+
+    $ManifestPath = 'Karabiner.psd1'
+    if ($env:APPVEYOR_REPO_TAG_NAME)
     {
-        [version]$Version = $env:APPVEYOR_REPO_TAG_NAME -replace '^\D*' -replace '\D*$'
-        [int]$Build = $env:APPVEYOR_BUILD_NUMBER
-        $BuildVersion = $Version, ++$Build -join '.'
-        Update-AppVeyorBuild -Version $BuildVersion
+        Invoke-Build UpdateVersion -Tag $env:APPVEYOR_REPO_TAG_NAME
+
+        $Version = (Test-ModuleManifest $ManifestPath -ErrorAction Stop).Version
+        $BuildId = "v$Version"
+    }
+    elseif ($env:APPVEYOR_PULL_REQUEST_NUMBER)
+    {
+        $BuildId = "PR$env:APPVEYOR_PULL_REQUEST_NUMBER"
     }
     else
     {
-        Update-AppVeyorBuild -Version ($env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH, $env:APPVEYOR_BUILD_NUMBER -join '-')
+        $BuildId = $env:APPVEYOR_REPO_COMMIT
     }
 
-build_script:
-- pwsh: |
-    ./install-build-dependencies.ps1
+    Update-AppVeyorBuild -Version ($BuildId, $env:APPVEYOR_BUILD_NUMBER -join '-')
 
     Invoke-Build Test
 
