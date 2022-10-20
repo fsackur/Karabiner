@@ -62,12 +62,6 @@ artifacts:
 - path: ./Build/Karabiner
   name: Karabiner $(APPVEYOR_REPO_TAG_NAME)
 
-# If we updated the version in the build step, then we should commit and push
-before_deploy:
-- pwsh: |
-    $ErrorActionPreference = 'Stop'
-    Invoke-Build Publish -PSGalleryApiKey $env:PSGALLERY_API_KEY
-
 deploy:
 - provider: GitHub
   tag: $(APPVEYOR_REPO_TAG_NAME)
@@ -77,5 +71,13 @@ deploy:
   artifact: Karabiner $(APPVEYOR_REPO_TAG_NAME)
   on:
     branch: main
+    APPVEYOR_REPO_TAG: true
+    APPVEYOR_REPO_TAG_NAME: /v\d+\.\d+\.\d+/
+- provider: NuGet
+  server: https://www.powershellgallery.com
+  api_key:
+    secure: UmYQsexe/hTwjL9R4PL6/2yzzwLPMERuN4FD2vWTtlWON8QBOeCifkmDCfzMjifo
+  artifact: NuGet package
+  on:
     APPVEYOR_REPO_TAG: true
     APPVEYOR_REPO_TAG_NAME: /v\d+\.\d+\.\d+/
