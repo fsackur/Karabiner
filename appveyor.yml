@@ -30,10 +30,11 @@ build_script:
 
         $ManifestPath = 'Karabiner.psd1'
         $Version = (Test-ModuleManifest $ManifestPath -ErrorAction Stop).Version
+        $env:Version = $Version
+
         $Tag = "v$Version"
         $env:APPVEYOR_REPO_TAG_NAME = $Tag
-
-        $BuildId = $Tag
+        $BuildId = $env:APPVEYOR_REPO_TAG_NAME
     }
     elseif ($env:APPVEYOR_PULL_REQUEST_NUMBER)
     {
@@ -50,26 +51,22 @@ build_script:
 
     Invoke-Build BuildNupkg
 
-    if ($Version)
-    {
-        Invoke-Build Tag -Tag $Tag
-    }
+    Invoke-Build Tag -Tag $Tag
 
 artifacts:
 - path: ./Build/**Karabiner*.nupkg
   name: NuGet package
 - path: ./Build/Karabiner
-  name: Karabiner $(APPVEYOR_REPO_TAG_NAME)
+  name: Karabiner.$(Version)
 
 deploy:
 - provider: GitHub
-  tag: $(APPVEYOR_REPO_TAG_NAME)
-  description: Karabiner $(APPVEYOR_REPO_TAG_NAME)
   auth_token:
     secure: VBvtOx1GcfCw0CpszU3o51q+rXovGMjX25Ld2RUF3c2rF1kaGF+cF8OiB6U2fPbY
-  artifact: Karabiner $(APPVEYOR_REPO_TAG_NAME)
+  tag: $(APPVEYOR_REPO_TAG_NAME)
+  description: Karabiner $(APPVEYOR_REPO_TAG_NAME)
+  artifact: Karabiner.$(Version)
   on:
-    branch: main
     APPVEYOR_REPO_TAG: true
     APPVEYOR_REPO_TAG_NAME: /v\d+\.\d+\.\d+/
 - provider: NuGet
