@@ -31,43 +31,52 @@ build_script:
 
     ./install-build-dependencies.ps1
 
-    if (
-        $env:APPVEYOR_REPO_BRANCH -eq 'main' -and
-        $env:APPVEYOR_REPO_COMMIT_MESSAGE -match '^Merge pull request' -and
-        -not $env:APPVEYOR_REPO_TAG
-    )
+    $Tag = if ($env:APPVEYOR_REPO_TAG_NAME)
     {
-        $env:APPVEYOR_REPO_TAG_NAME = 'build'
+        $env:APPVEYOR_REPO_TAG_NAME
+    }
+    elseif ($env:APPVEYOR_REPO_BRANCH -eq 'main' -and $env:APPVEYOR_REPO_COMMIT_MESSAGE -match '^Merge pull request')
+    {
+        'build'   # by default, merging to main increments the build digit
     }
 
-    if ($env:APPVEYOR_REPO_TAG_NAME)
+    if ($Tag)
     {
-        Invoke-Build UpdateVersion -Tag $env:APPVEYOR_REPO_TAG_NAME
+        Invoke-Build UpdateVersion -Tag $Tag
 
         $ManifestPath = 'Karabiner.psd1'
         $Version = (Test-ModuleManifest $ManifestPath -ErrorAction Stop).Version
+
+        # Stash version for later steps
         $env:Version = $Version
 
-        $Tag = "v$Version"
-        $env:APPVEYOR_REPO_TAG_NAME = $Tag
-        $BuildId = $env:APPVEYOR_REPO_TAG_NAME
+        # Major / minor / build tags get resolved to version tags
+        $env:APPVEYOR_REPO_TAG_NAME = $Tag = "v$Version"
+    }
+
+    $BuildId = if ($Tag)
+    {
+        $Tag
     }
     elseif ($env:APPVEYOR_PULL_REQUEST_NUMBER)
     {
-        $BuildId = "PR$env:APPVEYOR_PULL_REQUEST_NUMBER"
+        "PR$env:APPVEYOR_PULL_REQUEST_NUMBER"
     }
     else
     {
-        $BuildId = $env:APPVEYOR_REPO_COMMIT
+        $env:APPVEYOR_REPO_COMMIT
     }
-
     Update-AppVeyorBuild -Version ($BuildId, $env:APPVEYOR_BUILD_NUMBER -join '-')
+
 
     Invoke-Build Test
 
     Invoke-Build BuildNupkg
 
-    Invoke-Build Tag -Tag $Tag
+    if ($Tag)
+    {
+        Invoke-Build Tag -Tag $Tag
+    }
 
 artifacts:
 - path: ./Build/**Karabiner*.nupkg
