@@ -1,6 +1,6 @@
 @{
     Description          = 'Remap keys on MacOS with Karabiner-Elements.'
-    ModuleVersion        = '0.0.1'
+    ModuleVersion        = '0.1.4'
     HelpInfoURI          = 'https://pages.github.com/fsackur/Karabiner'
 
     # Only for MacOS
@@ -45,3 +45,4 @@
         }
     }
 }
+

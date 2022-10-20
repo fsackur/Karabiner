@@ -2,7 +2,7 @@
 
 param
 (
-    [version]$NewVersion,
+    [string]$Tag,
 
     [string]$PSGalleryApiKey
 )
@@ -12,8 +12,29 @@ task UpdateVersion {
     $ManifestPath = "Karabiner.psd1"
     $ManifestContent = Get-Content $ManifestPath -Raw
     $Manifest = Invoke-Expression "DATA {$ManifestContent}"
+    [version]$CurrentVersion = $Manifest.ModuleVersion
 
-    if ($NewVersion -le [version]$Manifest.ModuleVersion)
+    $NewVersion = $Tag -replace '^\D*' -replace '\D*$' -as [Version]
+    $TagIsVersion = [bool]$NewVersion
+    if (-not $TagIsVersion)
+    {
+        $Major, $Minor, $Build = $CurrentVersion.Major, $CurrentVersion.Minor, $CurrentVersion.Build
+        $null = switch ($Tag)
+        {
+            'Major' {$Major++; $Minor = $Build = 0}
+            'Minor' {$Minor++; $Build = 0}
+            'Build' {$Build++}
+            default {throw "Tag '$Tag' should be a version, or one of 'Major', 'Minor', 'Build'."}
+        }
+        $NewVersion = [version]::new($Major, $Minor, $Build)
+    }
+
+    if ($NewVersion -eq $CurrentVersion)
+    {
+        Write-Verbose "Already at version $Version."
+        return
+    }
+    elseif ($NewVersion -lt $CurrentVersion)
     {
         throw "Can't go backwards: $NewVersion =\=> $($Manifest.ModuleVersion)"
     }
@@ -22,6 +43,7 @@ task UpdateVersion {
 
     $ManifestContent = $ManifestContent -replace $ModuleVersionPattern, $NewVersion
     $ManifestContent | Out-File $ManifestPath -Encoding utf8
+    Write-Build Green "Updated version: $NewVersion"
 }
 
 # Synopsis: Run PSSA, excluding Tests folder and *.build.ps1
@@ -72,12 +94,69 @@ task Test Import, {
     Invoke-Pester
 }
 
-task Publish Build, {
+task Tag {
+    $ManifestPath = "Karabiner.psd1"
+    if (-not $Tag)
+    {
+        $Version = (Test-ModuleManifest $ManifestPath -ErrorAction Stop).Version
+        $Tag = "v$Version"
+    }
+
+    if ($Tag -in (git tag))
+    {
+        Write-Build Blue "Tag $Tag already present"
+        return
+    }
+
+    $Modified = (git status -s) -replace '^...'
+    if ($ManifestPath -in $Modified)
+    {
+        $Result = git add $ManifestPath *>&1 | Out-String | % Trim
+        if (-not $?)
+        {
+            throw $Result
+        }
+
+        $Result = git commit -m $Tag *>&1 | Out-String | % Trim
+        if (-not $?)
+        {
+            throw $Result
+        }
+    }
+
+    $Result = git tag $Tag *>&1 | Out-String | % Trim
+    if (-not $?)
+    {
+        throw $Result
+    }
+    Write-Build Green "Tagged $Tag"
+
+    $Result = git push --tags *>&1 | Out-String | % Trim
+    if (-not $?)
+    {
+        throw $Result
+    }
+}
+
+task PrepPublishableContent Build, {
     $UnversionedBase = "Build/Karabiner"
     $VersionedBase = Get-Module $UnversionedBase -ListAvailable | ForEach-Object ModuleBase
-    Get-ChildItem $VersionedBase | Copy-Item -Destination $UnversionedBase
+    Get-ChildItem $VersionedBase | Move-Item -Destination $UnversionedBase
     remove $VersionedBase
-    Publish-PSResource -Verbose -Path $UnversionedBase -DestinationPath Build -Repository PSGallery -ApiKey $PSGalleryApiKey
+}
+
+Task BuildNupkg PrepPublishableContent, {
+    $UnversionedBase = "Build/Karabiner"
+    if (-not (Get-PSResourceRepository PipelineArtifacts -ErrorAction Ignore))
+    {
+        Register-PSResourceRepository PipelineArtifacts -Uri ./Build -Trusted
+    }
+    Publish-PSResource -Verbose -Path $UnversionedBase -Repository PipelineArtifacts
+}
+
+task Publish PrepPublishableContent, {
+    $UnversionedBase = "Build/Karabiner"
+    Publish-PSResource -Verbose -Path $UnversionedBase -Repository PSGallery -ApiKey $PSGalleryApiKey
 }
 
 task . PSSA, Test

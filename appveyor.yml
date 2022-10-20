@@ -18,33 +18,53 @@ environment:
   PSGALLERY_API_KEY:
     secure: UmYQsexe/hTwjL9R4PL6/2yzzwLPMERuN4FD2vWTtlWON8QBOeCifkmDCfzMjifo
 
-init:
+build_script:
 - pwsh: |
-    if ($env:APPVEYOR_REPO_TAG -eq 'true')
+    $ErrorActionPreference = 'Stop'
+
+    ./install-build-dependencies.ps1
+
+    if ($env:APPVEYOR_REPO_TAG_NAME)
     {
-        [version]$Version = $env:APPVEYOR_REPO_TAG_NAME -replace '^\D*' -replace '\D*$'
-        [int]$Build = $env:APPVEYOR_BUILD_NUMBER
-        $BuildVersion = $Version, ++$Build -join '.'
-        Update-AppVeyorBuild -Version $BuildVersion
+        Invoke-Build UpdateVersion -Tag $env:APPVEYOR_REPO_TAG_NAME
+
+        $ManifestPath = 'Karabiner.psd1'
+        $Version = (Test-ModuleManifest $ManifestPath -ErrorAction Stop).Version
+        $Tag = "v$Version"
+        $env:APPVEYOR_REPO_TAG_NAME = $Tag
+
+        $BuildId = $Tag
+    }
+    elseif ($env:APPVEYOR_PULL_REQUEST_NUMBER)
+    {
+        $BuildId = "PR$env:APPVEYOR_PULL_REQUEST_NUMBER"
     }
     else
     {
-        Update-AppVeyorBuild -Version ($env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH, $env:APPVEYOR_BUILD_NUMBER -join '-')
+        $BuildId = $env:APPVEYOR_REPO_COMMIT
     }
 
-build_script:
-- pwsh: |
-    ./install-build-dependencies.ps1
+    Update-AppVeyorBuild -Version ($BuildId, $env:APPVEYOR_BUILD_NUMBER -join '-')
 
     Invoke-Build Test
+
+    Invoke-Build BuildNupkg
+
+    if ($Version)
+    {
+        Invoke-Build Tag -Tag $Tag
+    }
 
 artifacts:
 - path: ./Build/**Karabiner*.nupkg
   name: NuGet package
+- path: ./Build/Karabiner
+  name: Zip
 
 # If we updated the version in the build step, then we should commit and push
 before_deploy:
 - pwsh: |
+    $ErrorActionPreference = 'Stop'
     Invoke-Build Publish -PSGalleryApiKey $env:PSGALLERY_API_KEY
 
 deploy:
@@ -53,6 +73,8 @@ deploy:
   description: Karabiner $(APPVEYOR_REPO_TAG_NAME)
   auth_token:
     secure: VBvtOx1GcfCw0CpszU3o51q+rXovGMjX25Ld2RUF3c2rF1kaGF+cF8OiB6U2fPbY
-  artifact: NuGet package
+  artifact: Zip
   on:
+    branch: main
     APPVEYOR_REPO_TAG: true
+    APPVEYOR_REPO_TAG_NAME: /v\d+\.\d+\.\d+/
