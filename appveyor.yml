@@ -11,6 +11,7 @@ skip_branch_with_pr: true
 
 skip_commits:
   author: appveyor
+  message: /^Merge pull request/
 
 environment:
   GITHUB_TOKEN:
@@ -59,13 +60,7 @@ artifacts:
 - path: ./Build/**Karabiner*.nupkg
   name: NuGet package
 - path: ./Build/Karabiner
-  name: Zip
-
-# If we updated the version in the build step, then we should commit and push
-before_deploy:
-- pwsh: |
-    $ErrorActionPreference = 'Stop'
-    Invoke-Build Publish -PSGalleryApiKey $env:PSGALLERY_API_KEY
+  name: Karabiner $(APPVEYOR_REPO_TAG_NAME)
 
 deploy:
 - provider: GitHub
@@ -73,8 +68,16 @@ deploy:
   description: Karabiner $(APPVEYOR_REPO_TAG_NAME)
   auth_token:
     secure: VBvtOx1GcfCw0CpszU3o51q+rXovGMjX25Ld2RUF3c2rF1kaGF+cF8OiB6U2fPbY
-  artifact: Zip
+  artifact: Karabiner $(APPVEYOR_REPO_TAG_NAME)
   on:
     branch: main
+    APPVEYOR_REPO_TAG: true
+    APPVEYOR_REPO_TAG_NAME: /v\d+\.\d+\.\d+/
+- provider: NuGet
+  server: https://www.powershellgallery.com
+  api_key:
+    secure: UmYQsexe/hTwjL9R4PL6/2yzzwLPMERuN4FD2vWTtlWON8QBOeCifkmDCfzMjifo
+  artifact: NuGet package
+  on:
     APPVEYOR_REPO_TAG: true
     APPVEYOR_REPO_TAG_NAME: /v\d+\.\d+\.\d+/
