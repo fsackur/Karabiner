@@ -2,7 +2,7 @@
 
 param
 (
-    [version]$NewVersion,
+    [string]$Tag,
 
     [string]$PSGalleryApiKey
 )
@@ -12,8 +12,29 @@ task UpdateVersion {
     $ManifestPath = "Karabiner.psd1"
     $ManifestContent = Get-Content $ManifestPath -Raw
     $Manifest = Invoke-Expression "DATA {$ManifestContent}"
+    [version]$CurrentVersion = $Manifest.ModuleVersion
 
-    if ($NewVersion -le [version]$Manifest.ModuleVersion)
+    $NewVersion = $Tag -replace '^\D*' -replace '\D*$' -as [Version]
+    $TagIsVersion = [bool]$NewVersion
+    if (-not $TagIsVersion)
+    {
+        $Major, $Minor, $Build = $CurrentVersion.Major, $CurrentVersion.Minor, $CurrentVersion.Build
+        $null = switch ($Tag)
+        {
+            'Major' {$Major++; $Minor = $Build = 0}
+            'Minor' {$Minor++; $Build = 0}
+            'Build' {$Build++}
+            default {throw "Tag '$Tag' should be a version, or one of 'Major', 'Minor', 'Build'."}
+        }
+        $NewVersion = [version]::new($Major, $Minor, $Build)
+    }
+
+    if ($NewVersion -eq $CurrentVersion)
+    {
+        Write-Verbose "Already at version $Version."
+        return
+    }
+    elseif ($NewVersion -lt $CurrentVersion)
     {
         throw "Can't go backwards: $NewVersion =\=> $($Manifest.ModuleVersion)"
     }
@@ -22,6 +43,7 @@ task UpdateVersion {
 
     $ManifestContent = $ManifestContent -replace $ModuleVersionPattern, $NewVersion
     $ManifestContent | Out-File $ManifestPath -Encoding utf8
+    Write-Build Green "Updated version: $NewVersion"
 }
 
 # Synopsis: Run PSSA, excluding Tests folder and *.build.ps1
