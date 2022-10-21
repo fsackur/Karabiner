@@ -18,39 +18,62 @@ environment:
   PSGALLERY_API_KEY:
     secure: UmYQsexe/hTwjL9R4PL6/2yzzwLPMERuN4FD2vWTtlWON8QBOeCifkmDCfzMjifo
 
+init:
+- pwsh: |
+    git config --global credential.helper store
+    Set-Content (Join-Path $HOME .git-credentials) -Value "https://$($env:GITHUB_TOKEN):x-oauth-basic@github.com`n" -NoNewline
+    git config --global user.email appveyor@dustyfox.uk
+    git config --global user.name appveyor
+
 build_script:
 - pwsh: |
     $ErrorActionPreference = 'Stop'
 
     ./install-build-dependencies.ps1
 
-    if ($env:APPVEYOR_REPO_TAG_NAME)
+    $Tag = if ($env:APPVEYOR_REPO_TAG_NAME)
     {
-        Invoke-Build UpdateVersion -Tag $env:APPVEYOR_REPO_TAG_NAME
+        $env:APPVEYOR_REPO_TAG_NAME
+    }
+    elseif ($env:APPVEYOR_REPO_BRANCH -eq 'main' -and $env:APPVEYOR_REPO_COMMIT_MESSAGE -match '^Merge pull request')
+    {
+        'build'   # by default, merging to main increments the build digit
+    }
+
+    if ($Tag)
+    {
+        Invoke-Build UpdateVersion -Tag $Tag
 
         $ManifestPath = 'Karabiner.psd1'
         $Version = (Test-ModuleManifest $ManifestPath -ErrorAction Stop).Version
-        $Tag = "v$Version"
-        $env:APPVEYOR_REPO_TAG_NAME = $Tag
 
-        $BuildId = $Tag
+        # Stash version for later steps
+        $env:Version = $Version
+
+        # Major / minor / build tags get resolved to version tags
+        $env:APPVEYOR_REPO_TAG_NAME = $Tag = "v$Version"
+    }
+
+    $BuildId = if ($Tag)
+    {
+        $Tag
     }
     elseif ($env:APPVEYOR_PULL_REQUEST_NUMBER)
     {
-        $BuildId = "PR$env:APPVEYOR_PULL_REQUEST_NUMBER"
+        "PR$env:APPVEYOR_PULL_REQUEST_NUMBER"
     }
     else
     {
-        $BuildId = $env:APPVEYOR_REPO_COMMIT
+        $env:APPVEYOR_REPO_COMMIT
     }
-
     Update-AppVeyorBuild -Version ($BuildId, $env:APPVEYOR_BUILD_NUMBER -join '-')
+
 
     Invoke-Build Test
 
     Invoke-Build BuildNupkg
 
-    if ($Version)
+    if ($Tag)
     {
         Invoke-Build Tag -Tag $Tag
     }
@@ -59,18 +82,16 @@ artifacts:
 - path: ./Build/**Karabiner*.nupkg
   name: NuGet package
 - path: ./Build/Karabiner
-  name: Karabiner $(APPVEYOR_REPO_TAG_NAME)
+  name: Karabiner.$(Version)
 
 deploy:
 - provider: GitHub
-  tag: $(APPVEYOR_REPO_TAG_NAME)
-  description: Karabiner $(APPVEYOR_REPO_TAG_NAME)
   auth_token:
     secure: VBvtOx1GcfCw0CpszU3o51q+rXovGMjX25Ld2RUF3c2rF1kaGF+cF8OiB6U2fPbY
-  artifact: Karabiner $(APPVEYOR_REPO_TAG_NAME)
+  tag: $(APPVEYOR_REPO_TAG_NAME)
+  description: Karabiner $(APPVEYOR_REPO_TAG_NAME)
+  artifact: Karabiner.$(Version)
   on:
-    branch: main
-    APPVEYOR_REPO_TAG: true
     APPVEYOR_REPO_TAG_NAME: /v\d+\.\d+\.\d+/
 - provider: NuGet
   server: https://www.powershellgallery.com
@@ -78,5 +99,4 @@ deploy:
     secure: UmYQsexe/hTwjL9R4PL6/2yzzwLPMERuN4FD2vWTtlWON8QBOeCifkmDCfzMjifo
   artifact: NuGet package
   on:
-    APPVEYOR_REPO_TAG: true
     APPVEYOR_REPO_TAG_NAME: /v\d+\.\d+\.\d+/
