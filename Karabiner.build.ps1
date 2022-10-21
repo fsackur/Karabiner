@@ -136,6 +136,18 @@ task Tag {
     {
         throw $Result
     }
+
+    $Result = git switch -C main *>&1 | Out-String | % Trim
+    if (-not $?)
+    {
+        throw $Result
+    }
+
+    $Result = git push origin HEAD:main *>&1 | Out-String | % Trim
+    if (-not $?)
+    {
+        throw $Result
+    }
 }
 
 task PrepPublishableContent Build, {
